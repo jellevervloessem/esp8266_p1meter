@@ -22,9 +22,6 @@ WiFiClient espClient;
 // * Initiate MQTT client
 PubSubClient mqtt_client(espClient);
 
-// * Initiate Software Serial
-SoftwareSerial p1_serial(P1_SERIAL_RX, -1, true); // (RX, TX. inverted)
-
 // **********************************
 // * WIFI                           *
 // **********************************
@@ -135,9 +132,21 @@ void send_data_to_broker()
 {
     send_metric("consumption_low_tarif", CONSUMPTION_LOW_TARIF);
     send_metric("consumption_high_tarif", CONSUMPTION_HIGH_TARIF);
+    send_metric("returndelivery_low_tarif", RETURNDELIVERY_LOW_TARIF);
+    send_metric("returndelivery_high_tarif", RETURNDELIVERY_HIGH_TARIF);
     send_metric("actual_consumption", ACTUAL_CONSUMPTION);
-    send_metric("instant_power_usage", INSTANT_POWER_USAGE);
-    send_metric("instant_power_current", INSTANT_POWER_CURRENT);
+    send_metric("actual_returndelivery", ACTUAL_RETURNDELIVERY);
+
+    send_metric("l1_instant_power_usage", L1_INSTANT_POWER_USAGE);
+    send_metric("l2_instant_power_usage", L2_INSTANT_POWER_USAGE);
+    send_metric("l3_instant_power_usage", L3_INSTANT_POWER_USAGE);
+    send_metric("l1_instant_power_current", L1_INSTANT_POWER_CURRENT);
+    send_metric("l2_instant_power_current", L2_INSTANT_POWER_CURRENT);
+    send_metric("l3_instant_power_current", L3_INSTANT_POWER_CURRENT);
+    send_metric("l1_voltage", L1_VOLTAGE);
+    send_metric("l2_voltage", L2_VOLTAGE);
+    send_metric("l3_voltage", L3_VOLTAGE);
+    
     send_metric("gas_meter_m3", GAS_METER_M3);
 
     send_metric("actual_tarif_group", ACTUAL_TARIF);
@@ -226,8 +235,10 @@ bool decode_telegram(int len)
     int endChar = FindCharInArrayRev(telegram, '!', len);
     bool validCRCFound = false;
 
-    for (int cnt = 0; cnt < len; cnt++)
+    for (int cnt = 0; cnt < len; cnt++) {
         Serial.print(telegram[cnt]);
+    }
+    Serial.print("\n");
 
     if (startChar >= 0)
     {
@@ -270,27 +281,91 @@ bool decode_telegram(int len)
     {
         CONSUMPTION_HIGH_TARIF = getValue(telegram, len, '(', '*');
     }
+	
+    // 1-0:2.8.1(000560.157*kWh)
+    // 1-0:2.8.1 = Elektra teruglevering laag tarief (DSMR v4.0)
+    if (strncmp(telegram, "1-0:2.8.1", strlen("1-0:2.8.1")) == 0)
+    {
+        RETURNDELIVERY_LOW_TARIF = getValue(telegram, len, '(', '*');
+    }
+
+    // 1-0:2.8.2(000560.157*kWh)
+    // 1-0:2.8.2 = Elektra teruglevering hoog tarief (DSMR v4.0)
+    if (strncmp(telegram, "1-0:2.8.2", strlen("1-0:2.8.2")) == 0)
+    {
+        RETURNDELIVERY_HIGH_TARIF = getValue(telegram, len, '(', '*');
+    }
 
     // 1-0:1.7.0(00.424*kW) Actueel verbruik
-    // 1-0:2.7.0(00.000*kW) Actuele teruglevering
     // 1-0:1.7.x = Electricity consumption actual usage (DSMR v4.0)
     if (strncmp(telegram, "1-0:1.7.0", strlen("1-0:1.7.0")) == 0)
     {
         ACTUAL_CONSUMPTION = getValue(telegram, len, '(', '*');
     }
 
+    // 1-0:2.7.0(00.000*kW) Actuele teruglevering (-P) in 1 Watt resolution
+    if (strncmp(telegram, "1-0:2.7.0", strlen("1-0:2.7.0")) == 0)
+    {
+        ACTUAL_RETURNDELIVERY = getValue(telegram, len, '(', '*');
+    }
+
     // 1-0:21.7.0(00.378*kW)
-    // 1-0:21.7.0 = Instantaan vermogen Elektriciteit levering
+    // 1-0:21.7.0 = Instantaan vermogen Elektriciteit levering L1
     if (strncmp(telegram, "1-0:21.7.0", strlen("1-0:21.7.0")) == 0)
     {
-        INSTANT_POWER_USAGE = getValue(telegram, len, '(', '*');
+        L1_INSTANT_POWER_USAGE = getValue(telegram, len, '(', '*');
+    }
+
+    // 1-0:41.7.0(00.378*kW)
+    // 1-0:41.7.0 = Instantaan vermogen Elektriciteit levering L2
+    if (strncmp(telegram, "1-0:41.7.0", strlen("1-0:41.7.0")) == 0)
+    {
+        L2_INSTANT_POWER_USAGE = getValue(telegram, len, '(', '*');
+    }
+
+    // 1-0:61.7.0(00.378*kW)
+    // 1-0:61.7.0 = Instantaan vermogen Elektriciteit levering L3
+    if (strncmp(telegram, "1-0:61.7.0", strlen("1-0:61.7.0")) == 0)
+    {
+        L3_INSTANT_POWER_USAGE = getValue(telegram, len, '(', '*');
     }
 
     // 1-0:31.7.0(002*A)
-    // 1-0:31.7.0 = Instantane stroom Elektriciteit
+    // 1-0:31.7.0 = Instantane stroom Elektriciteit L1
     if (strncmp(telegram, "1-0:31.7.0", strlen("1-0:31.7.0")) == 0)
     {
-        INSTANT_POWER_CURRENT = getValue(telegram, len, '(', '*');
+        L1_INSTANT_POWER_CURRENT = getValue(telegram, len, '(', '*');
+    }
+    // 1-0:51.7.0(002*A)
+    // 1-0:51.7.0 = Instantane stroom Elektriciteit L2
+    if (strncmp(telegram, "1-0:51.7.0", strlen("1-0:51.7.0")) == 0)
+    {
+        L2_INSTANT_POWER_CURRENT = getValue(telegram, len, '(', '*');
+    }
+    // 1-0:71.7.0(002*A)
+    // 1-0:71.7.0 = Instantane stroom Elektriciteit L3
+    if (strncmp(telegram, "1-0:71.7.0", strlen("1-0:71.7.0")) == 0)
+    {
+        L3_INSTANT_POWER_CURRENT = getValue(telegram, len, '(', '*');
+    }
+
+    // 1-0:32.7.0(232.0*V)
+    // 1-0:32.7.0 = Voltage L1
+    if (strncmp(telegram, "1-0:32.7.0", strlen("1-0:32.7.0")) == 0)
+    {
+        L1_VOLTAGE = getValue(telegram, len, '(', '*');
+    }
+    // 1-0:52.7.0(232.0*V)
+    // 1-0:52.7.0 = Voltage L2
+    if (strncmp(telegram, "1-0:52.7.0", strlen("1-0:52.7.0")) == 0)
+    {
+        L2_VOLTAGE = getValue(telegram, len, '(', '*');
+    }   
+    // 1-0:72.7.0(232.0*V)
+    // 1-0:72.7.0 = Voltage L3
+    if (strncmp(telegram, "1-0:72.7.0", strlen("1-0:72.7.0")) == 0)
+    {
+        L3_VOLTAGE = getValue(telegram, len, '(', '*');
     }
 
     // 0-1:24.2.1(150531200000S)(00811.923*m3)
@@ -338,26 +413,32 @@ bool decode_telegram(int len)
     return validCRCFound;
 }
 
-void read_p1_serial()
+void read_p1_hardwareserial()
 {
-    if (p1_serial.available())
+    if (Serial.available())
     {
         memset(telegram, 0, sizeof(telegram));
 
-        while (p1_serial.available())
+        while (Serial.available())
         {
             ESP.wdtDisable();
-            int len = p1_serial.readBytesUntil('\n', telegram, P1_MAXLINELENGTH);
+            int len = Serial.readBytesUntil('\n', telegram, P1_MAXLINELENGTH);
             ESP.wdtEnable(1);
 
-            telegram[len] = '\n';
-            telegram[len + 1] = 0;
-            yield();
-
-            bool result = decode_telegram(len + 1);
-            if (result)
-                send_data_to_broker();
+            processLine(len);
         }
+    }
+}
+
+void processLine(int len) {
+    telegram[len] = '\n';
+    telegram[len + 1] = 0;
+    yield();
+
+    bool result = decode_telegram(len + 1);
+    if (result) {
+        send_data_to_broker();
+        LAST_UPDATE_SENT = millis();
     }
 }
 
@@ -476,18 +557,24 @@ void setup_mdns()
 
 void setup()
 {
-    // * Configure Serial and EEPROM
-    Serial.begin(BAUD_RATE);
+    // * Configure EEPROM
     EEPROM.begin(512);
+
+    // Setup a hw serial connection for communication with the P1 meter and logging (not using inversion)
+    Serial.begin(BAUD_RATE, SERIAL_8N1, SERIAL_FULL);
+    Serial.println("");
+    Serial.println("Swapping UART0 RX to inverted");
+    Serial.flush();
+
+    // Invert the RX serialport by setting a register value, this way the TX might continue normally allowing the serial monitor to read println's
+    USC0(UART0) = USC0(UART0) | BIT(UCRXI);
+    Serial.println("Serial port is ready to recieve.");
 
     // * Set led pin as output
     pinMode(LED_BUILTIN, OUTPUT);
 
     // * Start ticker with 0.5 because we start in AP mode and try to connect
     ticker.attach(0.6, tick);
-
-    // * Start software serial for p1 meter
-    p1_serial.begin(BAUD_RATE);
 
     // * Get MQTT Server settings
     String settings_available = read_eeprom(134, 1);
@@ -583,11 +670,10 @@ void setup()
 void loop()
 {
     ArduinoOTA.handle();
+    long now = millis();
 
     if (!mqtt_client.connected())
     {
-        long now = millis();
-
         if (now - LAST_RECONNECT_ATTEMPT > 5000)
         {
             LAST_RECONNECT_ATTEMPT = now;
@@ -602,6 +688,8 @@ void loop()
     {
         mqtt_client.loop();
     }
-
-    read_p1_serial();
+    
+    if (now - LAST_UPDATE_SENT > UPDATE_INTERVAL) {
+        read_p1_hardwareserial();
+    }
 }
