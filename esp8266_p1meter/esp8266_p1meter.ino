@@ -146,7 +146,7 @@ void send_data_to_broker()
     send_metric("l1_voltage", L1_VOLTAGE);
     send_metric("l2_voltage", L2_VOLTAGE);
     send_metric("l3_voltage", L3_VOLTAGE);
-    
+
     send_metric("gas_meter_m3", GAS_METER_M3);
 
     send_metric("actual_tarif_group", ACTUAL_TARIF);
@@ -162,26 +162,26 @@ void send_data_to_broker()
 
 unsigned int CRC16(unsigned int crc, unsigned char *buf, int len)
 {
-	for (int pos = 0; pos < len; pos++)
+   for (int pos = 0; pos < len; pos++)
     {
-		crc ^= (unsigned int)buf[pos];    // * XOR byte into least sig. byte of crc
-                                          // * Loop over each bit
-        for (int i = 8; i != 0; i--)
+      crc ^= (unsigned int)buf[pos];      // * XOR byte into least sig. byte of crc
+
+        for (int i = 8; i != 0; i--)      // * Loop over each bit
         {
             // * If the LSB is set
             if ((crc & 0x0001) != 0)
             {
                 // * Shift right and XOR 0xA001
                 crc >>= 1;
-				crc ^= 0xA001;
-			}
+                crc ^= 0xA001;
+            }
             // * Else LSB is not set
             else
                 // * Just shift right
                 crc >>= 1;
-		}
-	}
-	return crc;
+      }
+   }
+   return crc;
 }
 
 bool isNumber(char *res, int len)
@@ -254,7 +254,7 @@ bool decode_telegram(int len)
         strncpy(messageCRC, telegram + endChar + 1, 4);
 
         messageCRC[4] = 0;   // * Thanks to HarmOtten (issue 5)
-        validCRCFound = (strtol(messageCRC, NULL, 16) == currentCRC);
+        validCRCFound = ((unsigned int) strtol(messageCRC, NULL, 16) == currentCRC);
 
         if (validCRCFound)
             Serial.println(F("CRC Valid!"));
@@ -281,7 +281,7 @@ bool decode_telegram(int len)
     {
         CONSUMPTION_HIGH_TARIF = getValue(telegram, len, '(', '*');
     }
-	
+
     // 1-0:2.8.1(000560.157*kWh)
     // 1-0:2.8.1 = Elektra teruglevering laag tarief (DSMR v4.0)
     if (strncmp(telegram, "1-0:2.8.1", strlen("1-0:2.8.1")) == 0)
@@ -360,7 +360,7 @@ bool decode_telegram(int len)
     if (strncmp(telegram, "1-0:52.7.0", strlen("1-0:52.7.0")) == 0)
     {
         L2_VOLTAGE = getValue(telegram, len, '(', '*');
-    }   
+    }
     // 1-0:72.7.0(232.0*V)
     // 1-0:72.7.0 = Voltage L3
     if (strncmp(telegram, "1-0:72.7.0", strlen("1-0:72.7.0")) == 0)
@@ -688,7 +688,7 @@ void loop()
     {
         mqtt_client.loop();
     }
-    
+
     if (now - LAST_UPDATE_SENT > UPDATE_INTERVAL) {
         read_p1_hardwareserial();
     }
