@@ -5,7 +5,7 @@ Software for the ESP2866 that sends P1 smart meter data to an mqtt broker (with 
 # Upgrading
 
 When upgrading this sketch from the older version that uses software serial, make sure you re-check the pins and the wiring.
-The used pinout has changes since the switch to hardware serial (version 0.0.2 and up)
+The used pinout has changed since the switch to hardware serial (starting at version `0.0.2`)
 
 # Getting started
 
