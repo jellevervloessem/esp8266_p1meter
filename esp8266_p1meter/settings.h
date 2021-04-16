@@ -3,11 +3,13 @@
 // **********************************
 
 // Update treshold in milliseconds, messages will only be sent on this interval
-#define UPDATE_INTERVAL 60000  // 1 minute
+//#define UPDATE_INTERVAL 60000  // 1 minute
+#define UPDATE_INTERVAL 30000       // 15s
 //#define UPDATE_INTERVAL 300000 // 5 minutes
 
 // * Baud rate for both hardware and software 
 #define BAUD_RATE 115200
+//#define BAUD_RATE 9600
 
 // The used serial pins, note that this can only be UART0, as other serial port doesn't support inversion
 // By default the UART0 serial will be used. These settings displayed here just as a reference. 
@@ -15,7 +17,7 @@
 // #define SERIAL_TX TX
 
 // * Max telegram length
-#define P1_MAXLINELENGTH 1050
+#define P1_MAXLINELENGTH 4096 // 4096 longest normal line is 47 char (+3 for \r\n\0)
 
 // * The hostname of our little creature
 #define HOSTNAME "p1meter"
