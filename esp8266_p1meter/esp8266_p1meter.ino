@@ -303,47 +303,50 @@ bool decode_telegram(int len)
     //debug
     //Serial.printf("\ncurrentCRC = %d", currentCRC);
 
-    // 1-0:1.8.1(000992.992*kWh)
-    // 1-0:1.8.1 = Elektra verbruik laag tarief (DSMR v4.0)
-    if (strncmp(telegram, "1-0:1.8.1", strlen("1-0:1.8.1")) == 0)
-    {
-        CONSUMPTION_LOW_TARIF = getValue(telegram, len, '(', '*');
-    }
 
-    // 1-0:1.8.2(000560.157*kWh)
-    // 1-0:1.8.2 = Elektra verbruik hoog tarief (DSMR v4.0)
-    if (strncmp(telegram, "1-0:1.8.2", strlen("1-0:1.8.2")) == 0)
+    // 1-0:1.8.1(000992.992*kWh)
+    // 1-0:1.8.1 = Elektra verbruik DAG  tarief (DSMR v4.0)
+    if (strncmp(telegram, "1-0:1.8.1", strlen("1-0:1.8.1")) == 0)
     {
         CONSUMPTION_HIGH_TARIF = getValue(telegram, len, '(', '*');
     }
 
-    // 1-0:2.8.1(000560.157*kWh)
-    // 1-0:2.8.1 = Elektra teruglevering laag tarief (DSMR v4.0)
-    if (strncmp(telegram, "1-0:2.8.1", strlen("1-0:2.8.1")) == 0)
+    // 1-0:1.8.2(000560.157*kWh)
+    // 1-0:1.8.2 = Elektra verbruik NACHT tarief (DSMR v4.0)
+    if (strncmp(telegram, "1-0:1.8.2", strlen("1-0:1.8.2")) == 0)
     {
-        RETURNDELIVERY_LOW_TARIF = getValue(telegram, len, '(', '*');
+        CONSUMPTION_LOW_TARIF = getValue(telegram, len, '(', '*');
     }
 
-    // 1-0:2.8.2(000560.157*kWh)
-    // 1-0:2.8.2 = Elektra teruglevering hoog tarief (DSMR v4.0)
-    if (strncmp(telegram, "1-0:2.8.2", strlen("1-0:2.8.2")) == 0)
+    // 1-0:2.8.1(000560.157*kWh)
+    // 1-0:2.8.1 = Elektra opbrengst dagtarief (Fluvius) - Totale injectie van energie in kWh dagtarief
+    if (strncmp(telegram, "1-0:2.8.1", strlen("1-0:2.8.1")) == 0)
     {
         RETURNDELIVERY_HIGH_TARIF = getValue(telegram, len, '(', '*');
     }
 
-    // 1-0:1.7.0(00.424*kW) Actueel verbruik
+    // 1-0:2.8.2(000560.157*kWh)
+  // 1-0:2.8.2 = Elektra opbrengst nachttarief (Fluvius) - Totale injectie van energie in kWh nachttarief
+    if (strncmp(telegram, "1-0:2.8.2", strlen("1-0:2.8.2")) == 0)
+    {
+        RETURNDELIVERY_LOW_TARIF = getValue(telegram, len, '(', '*');
+    }
+
+    // 1-0:1.7.0(00.424*kW) Actueel verbruik (Fluvius) - Afgenomen ogenblikkelijk vermogen in kW 
     // 1-0:1.7.x = Electricity consumption actual usage (DSMR v4.0)
     if (strncmp(telegram, "1-0:1.7.0", strlen("1-0:1.7.0")) == 0)
     {
         ACTUAL_CONSUMPTION = getValue(telegram, len, '(', '*');
     }
 
-    // 1-0:2.7.0(00.000*kW) Actuele teruglevering (-P) in 1 Watt resolution
+    // 1-0:2.7.0(00.000*kW) Actuele teruglevering (Fluvius) - Geïnjecteerd ogenblikkelijk vermogen in kW
     if (strncmp(telegram, "1-0:2.7.0", strlen("1-0:2.7.0")) == 0)
     {
         ACTUAL_RETURNDELIVERY = getValue(telegram, len, '(', '*');
     }
 
+//undocumented --> remove
+/*
     // 1-0:21.7.0(00.378*kW)
     // 1-0:21.7.0 = Instantaan vermogen Elektriciteit levering L1
     if (strncmp(telegram, "1-0:21.7.0", strlen("1-0:21.7.0")) == 0)
@@ -364,21 +367,21 @@ bool decode_telegram(int len)
     {
         L3_INSTANT_POWER_USAGE = getValue(telegram, len, '(', '*');
     }
-
+*/
     // 1-0:31.7.0(002*A)
-    // 1-0:31.7.0 = Instantane stroom Elektriciteit L1
+    // 1-0:31.7.0 = Instantant stroom Elektriciteit L1
     if (strncmp(telegram, "1-0:31.7.0", strlen("1-0:31.7.0")) == 0)
     {
         L1_INSTANT_POWER_CURRENT = getValue(telegram, len, '(', '*');
     }
     // 1-0:51.7.0(002*A)
-    // 1-0:51.7.0 = Instantane stroom Elektriciteit L2
+    // 1-0:51.7.0 = Instantant stroom Elektriciteit L2
     if (strncmp(telegram, "1-0:51.7.0", strlen("1-0:51.7.0")) == 0)
     {
         L2_INSTANT_POWER_CURRENT = getValue(telegram, len, '(', '*');
     }
     // 1-0:71.7.0(002*A)
-    // 1-0:71.7.0 = Instantane stroom Elektriciteit L3
+    // 1-0:71.7.0 = Instantant stroom Elektriciteit L3
     if (strncmp(telegram, "1-0:71.7.0", strlen("1-0:71.7.0")) == 0)
     {
         L3_INSTANT_POWER_CURRENT = getValue(telegram, len, '(', '*');
@@ -445,33 +448,6 @@ bool decode_telegram(int len)
         SHORT_POWER_PEAKS = getValue(telegram, len, '(', ')');
     }
 
-    //debug
-    /*
-    Serial.printf("\nconsumption_low_tarif = %li", CONSUMPTION_LOW_TARIF);
-    Serial.printf("\nconsumption_high_tarif = %li", CONSUMPTION_HIGH_TARIF);
-    Serial.printf("\nreturndelivery_low_tarif = %li", RETURNDELIVERY_LOW_TARIF);
-    Serial.printf("\nreturndelivery_high_tarif = %li", RETURNDELIVERY_HIGH_TARIF);
-    Serial.printf("\nactual_consumption = %li", ACTUAL_CONSUMPTION);
-    Serial.printf("\nactual_returndelivery = %li", ACTUAL_RETURNDELIVERY);
-
-    Serial.printf("\nl1_instant_power_usage = %li", L1_INSTANT_POWER_USAGE);
-    Serial.printf("\nl2_instant_power_usage = %li", L2_INSTANT_POWER_USAGE);
-    Serial.printf("\nl3_instant_power_usage = %li", L3_INSTANT_POWER_USAGE);
-    Serial.printf("\nl1_instant_power_current = %li", L1_INSTANT_POWER_CURRENT);
-    Serial.printf("\nl2_instant_power_current = %li", L2_INSTANT_POWER_CURRENT);
-    Serial.printf("\nl3_instant_power_current = %li", L3_INSTANT_POWER_CURRENT);
-    Serial.printf("\nl1_voltage = %li", L1_VOLTAGE);
-    Serial.printf("\nl2_voltage = %li", L2_VOLTAGE);
-    Serial.printf("\nl3_voltage = %li", L3_VOLTAGE);
-
-    Serial.printf("\ngas_meter_m3 = %li", GAS_METER_M3);
-
-    Serial.printf("\nactual_tarif_group = %li", ACTUAL_TARIF);
-    Serial.printf("\nshort_power_outages = %li", SHORT_POWER_OUTAGES);
-    Serial.printf("\nlong_power_outages = %li", LONG_POWER_OUTAGES);
-    Serial.printf("\nshort_power_drops = %li", SHORT_POWER_DROPS);
-    Serial.printf("\nshort_power_peaks = %li", SHORT_POWER_PEAKS);
-    */
     return validCRCFound;
 }
 
@@ -490,7 +466,6 @@ void read_p1_hardwareserial()
             
             ESP.wdtEnable(1);
 
-            
             //debug entire telegram
             //Serial.printf(">>> %s\n", telegram);
             
