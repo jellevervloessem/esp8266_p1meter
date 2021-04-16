@@ -47,8 +47,8 @@ void configModeCallback(WiFiManager *myWiFiManager)
 void tick()
 {
     // * Toggle state
-    int state = digitalRead(LED_BUILTIN);    // * Get the current state of GPIO1 pin
-    digitalWrite(LED_BUILTIN, !state);       // * Set pin to the opposite state
+    int state = digitalRead(LED_BUILTIN); // * Get the current state of GPIO1 pin
+    digitalWrite(LED_BUILTIN, !state);    // * Set pin to the opposite state
 }
 
 // **********************************
@@ -58,8 +58,10 @@ void tick()
 // * Send a message to a broker topic
 void send_mqtt_message(const char *topic, char *payload)
 {
+    /*
     Serial.printf("MQTT Outgoing on %s: ", topic);
     Serial.println(payload);
+    */
 
     bool result = mqtt_client.publish(topic, payload, false);
 
@@ -116,10 +118,11 @@ bool mqtt_reconnect()
 
 void send_metric(String name, long metric)
 {
+    /*
     Serial.print(F("Sending metric to broker: "));
     Serial.print(name);
     Serial.print(F("="));
-    Serial.println(metric);
+    Serial.println(metric);*/
 
     char output[10];
     ltoa(metric, output, sizeof(output));
@@ -162,11 +165,11 @@ void send_data_to_broker()
 
 unsigned int CRC16(unsigned int crc, unsigned char *buf, int len)
 {
-   for (int pos = 0; pos < len; pos++)
+    for (int pos = 0; pos < len; pos++)
     {
-      crc ^= (unsigned int)buf[pos];      // * XOR byte into least sig. byte of crc
+        crc ^= (unsigned int)buf[pos]; // * XOR byte into least sig. byte of crc
 
-        for (int i = 8; i != 0; i--)      // * Loop over each bit
+        for (int i = 8; i != 0; i--) // * Loop over each bit
         {
             // * If the LSB is set
             if ((crc & 0x0001) != 0)
@@ -179,9 +182,9 @@ unsigned int CRC16(unsigned int crc, unsigned char *buf, int len)
             else
                 // * Just shift right
                 crc >>= 1;
-      }
-   }
-   return crc;
+        }
+    }
+    return crc;
 }
 
 bool isNumber(char *res, int len)
@@ -235,26 +238,52 @@ bool decode_telegram(int len)
     int endChar = FindCharInArrayRev(telegram, '!', len);
     bool validCRCFound = false;
 
-    for (int cnt = 0; cnt < len; cnt++) {
+    //debug
+    //Serial.printf("\nstartchar = %d; endchar = %d; \n", startChar, endChar);
+
+    Serial.print("telegram = __");
+    for (int cnt = 0; cnt < len; cnt++)
+    {
         Serial.print(telegram[cnt]);
     }
-    Serial.print("\n");
+    Serial.print("__\n");
 
     if (startChar >= 0)
     {
+        //debug
+        Serial.println("Branch 1");
+
         // * Start found. Reset CRC calculation
-        currentCRC = CRC16(0x0000,(unsigned char *) telegram+startChar, len-startChar);
+        currentCRC = CRC16(0x0000, (unsigned char *)telegram + startChar, len - startChar);
     }
     else if (endChar >= 0)
     {
+        //debug
+        Serial.println("Branch 2");
+
         // * Add to crc calc
-        currentCRC = CRC16(currentCRC,(unsigned char*)telegram+endChar, 1);
+        currentCRC = CRC16(currentCRC, (unsigned char *)telegram + endChar, 1);
 
         char messageCRC[5];
         strncpy(messageCRC, telegram + endChar + 1, 4);
 
-        messageCRC[4] = 0;   // * Thanks to HarmOtten (issue 5)
-        validCRCFound = ((unsigned int) strtol(messageCRC, NULL, 16) == currentCRC);
+        messageCRC[4] = 0; // * Thanks to HarmOtten (issue 5)
+
+        //debug
+        Serial.printf("\nmessageCRC = %s", messageCRC);
+
+        //validCRCFound = (strtol(messageCRC, NULL, 16) == currentCRC);
+        validCRCFound = ((unsigned int)strtol(messageCRC, NULL, 16) == currentCRC);
+
+        //debug
+        Serial.printf("\ncurrentCRC = %d", currentCRC);
+        // Serial.print("\nvalidCRCFound =");
+        // Serial.print(validCRCFound);
+        // Serial.println("");
+
+        /*HARDCODED - Set True!*/
+        Serial.println("\nOverwrite ValidCRCFound");
+        validCRCFound = true;
 
         if (validCRCFound)
             Serial.println(F("CRC Valid!"));
@@ -265,8 +294,14 @@ bool decode_telegram(int len)
     }
     else
     {
-        currentCRC = CRC16(currentCRC, (unsigned char*) telegram, len);
+        //debug
+        Serial.println("Branch 3");
+
+        currentCRC = CRC16(currentCRC, (unsigned char *)telegram, len);
     }
+
+    //debug
+    //Serial.printf("\ncurrentCRC = %d", currentCRC);
 
     // 1-0:1.8.1(000992.992*kWh)
     // 1-0:1.8.1 = Elektra verbruik laag tarief (DSMR v4.0)
@@ -368,9 +403,9 @@ bool decode_telegram(int len)
         L3_VOLTAGE = getValue(telegram, len, '(', '*');
     }
 
-    // 0-1:24.2.1(150531200000S)(00811.923*m3)
-    // 0-1:24.2.1 = Gas (DSMR v4.0) on Kaifa MA105 meter
-    if (strncmp(telegram, "0-1:24.2.1", strlen("0-1:24.2.1")) == 0)
+    // 0-1:24.2.3(150531200000S)(00811.923*m3)
+    // 0-1:24.2.3 = Gas (DSMR v5.0 - fluvius)
+    if (strncmp(telegram, "0-1:24.2.3", strlen("0-1:24.2.3")) == 0)
     {
         GAS_METER_M3 = getValue(telegram, len, '(', '*');
     }
@@ -410,6 +445,33 @@ bool decode_telegram(int len)
         SHORT_POWER_PEAKS = getValue(telegram, len, '(', ')');
     }
 
+    //debug
+    /*
+    Serial.printf("\nconsumption_low_tarif = %li", CONSUMPTION_LOW_TARIF);
+    Serial.printf("\nconsumption_high_tarif = %li", CONSUMPTION_HIGH_TARIF);
+    Serial.printf("\nreturndelivery_low_tarif = %li", RETURNDELIVERY_LOW_TARIF);
+    Serial.printf("\nreturndelivery_high_tarif = %li", RETURNDELIVERY_HIGH_TARIF);
+    Serial.printf("\nactual_consumption = %li", ACTUAL_CONSUMPTION);
+    Serial.printf("\nactual_returndelivery = %li", ACTUAL_RETURNDELIVERY);
+
+    Serial.printf("\nl1_instant_power_usage = %li", L1_INSTANT_POWER_USAGE);
+    Serial.printf("\nl2_instant_power_usage = %li", L2_INSTANT_POWER_USAGE);
+    Serial.printf("\nl3_instant_power_usage = %li", L3_INSTANT_POWER_USAGE);
+    Serial.printf("\nl1_instant_power_current = %li", L1_INSTANT_POWER_CURRENT);
+    Serial.printf("\nl2_instant_power_current = %li", L2_INSTANT_POWER_CURRENT);
+    Serial.printf("\nl3_instant_power_current = %li", L3_INSTANT_POWER_CURRENT);
+    Serial.printf("\nl1_voltage = %li", L1_VOLTAGE);
+    Serial.printf("\nl2_voltage = %li", L2_VOLTAGE);
+    Serial.printf("\nl3_voltage = %li", L3_VOLTAGE);
+
+    Serial.printf("\ngas_meter_m3 = %li", GAS_METER_M3);
+
+    Serial.printf("\nactual_tarif_group = %li", ACTUAL_TARIF);
+    Serial.printf("\nshort_power_outages = %li", SHORT_POWER_OUTAGES);
+    Serial.printf("\nlong_power_outages = %li", LONG_POWER_OUTAGES);
+    Serial.printf("\nshort_power_drops = %li", SHORT_POWER_DROPS);
+    Serial.printf("\nshort_power_peaks = %li", SHORT_POWER_PEAKS);
+    */
     return validCRCFound;
 }
 
@@ -417,26 +479,43 @@ void read_p1_hardwareserial()
 {
     if (Serial.available())
     {
-        memset(telegram, 0, sizeof(telegram));
+        //memset(telegram, 0, sizeof(telegram));
 
         while (Serial.available())
         {
+            memset(telegram, 0, sizeof(telegram));
+
             ESP.wdtDisable();
             int len = Serial.readBytesUntil('\n', telegram, P1_MAXLINELENGTH);
+            
             ESP.wdtEnable(1);
+
+            
+            //debug entire telegram
+            //Serial.printf(">>> %s\n", telegram);
+            
 
             processLine(len);
         }
     }
 }
 
-void processLine(int len) {
+void processLine(int len)
+{
+    //Serial.printf("--- %s\n", telegram);
     telegram[len] = '\n';
     telegram[len + 1] = 0;
     yield();
 
+    //Serial.printf("=== %s\n", telegram);
+    //debug
+    Serial.println(F("ProcessLine:"));
+
+    //DEBUG
     bool result = decode_telegram(len + 1);
-    if (result) {
+
+    if (result)
+    {
         send_data_to_broker();
         LAST_UPDATE_SENT = millis();
     }
@@ -481,7 +560,7 @@ void write_eeprom(int offset, int len, String value)
 bool shouldSaveConfig = false;
 
 // * Callback notifying us of the need to save config
-void save_wifi_config_callback ()
+void save_wifi_config_callback()
 {
     Serial.println(F("Should save config"));
     shouldSaveConfig = true;
@@ -502,23 +581,19 @@ void setup_ota()
     ArduinoOTA.setHostname(HOSTNAME);
     ArduinoOTA.setPassword(OTA_PASSWORD);
 
-    ArduinoOTA.onStart([]()
-    {
+    ArduinoOTA.onStart([]() {
         Serial.println(F("Arduino OTA: Start"));
     });
 
-    ArduinoOTA.onEnd([]()
-    {
+    ArduinoOTA.onEnd([]() {
         Serial.println(F("Arduino OTA: End (Running reboot)"));
     });
 
-    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
-    {
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
         Serial.printf("Arduino OTA Progress: %u%%\r", (progress / (total / 100)));
     });
 
-    ArduinoOTA.onError([](ota_error_t error)
-    {
+    ArduinoOTA.onError([](ota_error_t error) {
         Serial.printf("Arduino OTA Error[%u]: ", error);
         if (error == OTA_AUTH_ERROR)
             Serial.println(F("Arduino OTA: Auth Failed"));
@@ -588,9 +663,9 @@ void setup()
     }
 
     WiFiManagerParameter CUSTOM_MQTT_HOST("host", "MQTT hostname", MQTT_HOST, 64);
-    WiFiManagerParameter CUSTOM_MQTT_PORT("port", "MQTT port",     MQTT_PORT, 6);
-    WiFiManagerParameter CUSTOM_MQTT_USER("user", "MQTT user",     MQTT_USER, 32);
-    WiFiManagerParameter CUSTOM_MQTT_PASS("pass", "MQTT pass",     MQTT_PASS, 32);
+    WiFiManagerParameter CUSTOM_MQTT_PORT("port", "MQTT port", MQTT_PORT, 6);
+    WiFiManagerParameter CUSTOM_MQTT_USER("user", "MQTT user", MQTT_USER, 32);
+    WiFiManagerParameter CUSTOM_MQTT_PASS("pass", "MQTT pass", MQTT_PASS, 32);
 
     // * WiFiManager local initialization. Once its business is done, there is no need to keep it around
     WiFiManager wifiManager;
@@ -660,7 +735,6 @@ void setup()
     Serial.printf("MQTT connecting to: %s:%s\n", MQTT_HOST, MQTT_PORT);
 
     mqtt_client.setServer(MQTT_HOST, atoi(MQTT_PORT));
-
 }
 
 // **********************************
@@ -672,8 +746,12 @@ void loop()
     ArduinoOTA.handle();
     long now = millis();
 
+    //debug
+    Serial.print(F("."));
+
     if (!mqtt_client.connected())
     {
+
         if (now - LAST_RECONNECT_ATTEMPT > 5000)
         {
             LAST_RECONNECT_ATTEMPT = now;
@@ -689,7 +767,13 @@ void loop()
         mqtt_client.loop();
     }
 
-    if (now - LAST_UPDATE_SENT > UPDATE_INTERVAL) {
+    if (now - LAST_UPDATE_SENT > UPDATE_INTERVAL)
+    {
         read_p1_hardwareserial();
     }
+
+    //debug
+    //Serial.println("End Loop");
+    //Serial.println("--------");
+    
 }
