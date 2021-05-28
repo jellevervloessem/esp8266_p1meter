@@ -2,6 +2,14 @@
 // * Settings                       *
 // **********************************
 
+//Reset wifi settings:
+// *Number of seconds after reset during which a 
+// *subseqent reset will be considered a double reset.
+#define DRD_TIMEOUT 10
+
+// *RTC Memory Address for the DoubleResetDetector to use
+#define DRD_ADDRESS 1
+
 // Update treshold in milliseconds, messages will only be sent on this interval
 //#define UPDATE_INTERVAL 60000  // 1 minute
 #define UPDATE_INTERVAL 30000       // 30s
@@ -17,7 +25,7 @@
 // #define SERIAL_TX TX
 
 // * Max telegram length
-#define P1_MAXLINELENGTH 4096 // 4096 longest normal line is 47 char (+3 for \r\n\0)
+#define P1_MAXLINELENGTH 2048 // 4096 longest normal line is 47 char (+3 for \r\n\0)
 
 // * The hostname of our little creature
 #define HOSTNAME "p1meter"

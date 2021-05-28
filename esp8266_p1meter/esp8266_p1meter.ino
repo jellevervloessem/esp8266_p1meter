@@ -9,9 +9,13 @@
 #include <ArduinoOTA.h>
 #include <PubSubClient.h>
 #include <SoftwareSerial.h>
+#include <DoubleResetDetector.h>
 
 // * Include settings
 #include "settings.h"
+
+// * Initiate Double resetDetector
+DoubleResetDetector drd(DRD_TIMEOUT, DRD_ADDRESS);
 
 // * Initiate led blinker library
 Ticker ticker;
@@ -177,6 +181,7 @@ unsigned int CRC16(unsigned int crc, unsigned char *buf, int len)
                 // * Shift right and XOR 0xA001
                 crc >>= 1;
                 crc ^= 0xA001;
+                //crc ^= 0x8005;
             }
             // * Else LSB is not set
             else
@@ -246,12 +251,12 @@ bool decode_telegram(int len)
     {
         Serial.print(telegram[cnt]);
     }
-    Serial.print("__\n");
+    //Serial.print("__\n");
 
     if (startChar >= 0)
     {
         //debug
-        Serial.println("Branch 1");
+        //Serial.println("Branch 1");
 
         // * Start found. Reset CRC calculation
         currentCRC = CRC16(0x0000, (unsigned char *)telegram + startChar, len - startChar);
@@ -282,8 +287,8 @@ bool decode_telegram(int len)
         // Serial.println("");
 
         /*HARDCODED - Set True!*/
-        Serial.println("\nOverwrite ValidCRCFound");
-        validCRCFound = true;
+        // Serial.println("\nOverwrite ValidCRCFound");
+        // validCRCFound = true;
 
         if (validCRCFound)
             Serial.println(F("CRC Valid!"));
@@ -295,14 +300,13 @@ bool decode_telegram(int len)
     else
     {
         //debug
-        Serial.println("Branch 3");
+        //Serial.println("Branch 3");
 
         currentCRC = CRC16(currentCRC, (unsigned char *)telegram, len);
     }
 
     //debug
     //Serial.printf("\ncurrentCRC = %d", currentCRC);
-
 
     // 1-0:1.8.1(000992.992*kWh)
     // 1-0:1.8.1 = Elektra verbruik DAG  tarief (DSMR v4.0)
@@ -326,13 +330,13 @@ bool decode_telegram(int len)
     }
 
     // 1-0:2.8.2(000560.157*kWh)
-  // 1-0:2.8.2 = Elektra opbrengst nachttarief (Fluvius) - Totale injectie van energie in kWh nachttarief
+    // 1-0:2.8.2 = Elektra opbrengst nachttarief (Fluvius) - Totale injectie van energie in kWh nachttarief
     if (strncmp(telegram, "1-0:2.8.2", strlen("1-0:2.8.2")) == 0)
     {
         RETURNDELIVERY_LOW_TARIF = getValue(telegram, len, '(', '*');
     }
 
-    // 1-0:1.7.0(00.424*kW) Actueel verbruik (Fluvius) - Afgenomen ogenblikkelijk vermogen in kW 
+    // 1-0:1.7.0(00.424*kW) Actueel verbruik (Fluvius) - Afgenomen ogenblikkelijk vermogen in kW
     // 1-0:1.7.x = Electricity consumption actual usage (DSMR v4.0)
     if (strncmp(telegram, "1-0:1.7.0", strlen("1-0:1.7.0")) == 0)
     {
@@ -345,8 +349,8 @@ bool decode_telegram(int len)
         ACTUAL_RETURNDELIVERY = getValue(telegram, len, '(', '*');
     }
 
-//undocumented --> remove
-/*
+    //undocumented --> remove
+    /*
     // 1-0:21.7.0(00.378*kW)
     // 1-0:21.7.0 = Instantaan vermogen Elektriciteit levering L1
     if (strncmp(telegram, "1-0:21.7.0", strlen("1-0:21.7.0")) == 0)
@@ -453,24 +457,24 @@ bool decode_telegram(int len)
 
 void read_p1_hardwareserial()
 {
+
     if (Serial.available())
     {
-        //memset(telegram, 0, sizeof(telegram));
+        memset(telegram, 0, sizeof(telegram));
 
         while (Serial.available())
         {
-            memset(telegram, 0, sizeof(telegram));
-
-            ESP.wdtDisable();
+            //ESP.wdtDisable();
             int len = Serial.readBytesUntil('\n', telegram, P1_MAXLINELENGTH);
-            
-            ESP.wdtEnable(1);
+
+            //ESP.wdtEnable(1);
 
             //debug entire telegram
             //Serial.printf(">>> %s\n", telegram);
-            
 
             processLine(len);
+
+            memset(telegram, 0, sizeof(telegram));
         }
     }
 }
@@ -484,7 +488,7 @@ void processLine(int len)
 
     //Serial.printf("=== %s\n", telegram);
     //debug
-    Serial.println(F("ProcessLine:"));
+    //Serial.println(F("ProcessLine:"));
 
     //DEBUG
     bool result = decode_telegram(len + 1);
@@ -539,6 +543,21 @@ void save_wifi_config_callback()
 {
     Serial.println(F("Should save config"));
     shouldSaveConfig = true;
+}
+
+// ******************************************
+// * Callback for resetting Wifi settings   *
+// ******************************************
+void resetWifi() {
+  Serial.println("RST was pushed twice...");
+  Serial.println("Erasing stored WiFi credentials.");
+  
+  // clear WiFi creds.
+  WiFiManager wifiManager;
+  wifiManager.resetSettings();
+   
+  Serial.println("Restarting...");
+  ESP.restart(); // builtin, safely restarts the ESP. 
 }
 
 // **********************************
@@ -622,6 +641,15 @@ void setup()
 
     // * Set led pin as output
     pinMode(LED_BUILTIN, OUTPUT);
+
+    // * Setup Double reset detection
+    if (drd.detectDoubleReset()) {
+        Serial.println("Double Reset Detected");
+        Serial.println("RESET WIFI Initiated");
+        resetWifi();
+    } else {
+        Serial.println("No Double Reset Detected");
+    }
 
     // * Start ticker with 0.5 because we start in AP mode and try to connect
     ticker.attach(0.6, tick);
@@ -721,9 +749,6 @@ void loop()
     ArduinoOTA.handle();
     long now = millis();
 
-    //debug
-    Serial.print(F("."));
-
     if (!mqtt_client.connected())
     {
 
@@ -739,16 +764,25 @@ void loop()
     }
     else
     {
+        //Serial.println("start mqtt Loop");
         mqtt_client.loop();
+        //Serial.println("End mqtt Loop");
     }
 
     if (now - LAST_UPDATE_SENT > UPDATE_INTERVAL)
     {
+        //Serial.println("start reading serial");
         read_p1_hardwareserial();
     }
 
-    //debug
-    //Serial.println("End Loop");
-    //Serial.println("--------");
-    
+    // //debug
+    // Serial.println("End Loop");
+    // Serial.println("--------");
+
+
+    // Call the double reset detector loop method every so often,
+    // so that it can recognise when the timeout expires.
+    // You can also call drd.stop() when you wish to no longer
+    // consider the next reset as a double reset.
+    drd.loop();
 }
