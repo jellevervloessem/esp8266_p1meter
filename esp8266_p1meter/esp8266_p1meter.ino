@@ -548,16 +548,17 @@ void save_wifi_config_callback()
 // ******************************************
 // * Callback for resetting Wifi settings   *
 // ******************************************
-void resetWifi() {
-  Serial.println("RST was pushed twice...");
-  Serial.println("Erasing stored WiFi credentials.");
-  
-  // clear WiFi creds.
-  WiFiManager wifiManager;
-  wifiManager.resetSettings();
-   
-  Serial.println("Restarting...");
-  ESP.restart(); // builtin, safely restarts the ESP. 
+void resetWifi()
+{
+    Serial.println("RST was pushed twice...");
+    Serial.println("Erasing stored WiFi credentials.");
+
+    // clear WiFi creds.
+    WiFiManager wifiManager;
+    wifiManager.resetSettings();
+
+    Serial.println("Restarting...");
+    ESP.restart(); // builtin, safely restarts the ESP.
 }
 
 // **********************************
@@ -575,31 +576,29 @@ void setup_ota()
     ArduinoOTA.setHostname(HOSTNAME);
     ArduinoOTA.setPassword(OTA_PASSWORD);
 
-    ArduinoOTA.onStart([]() {
-        Serial.println(F("Arduino OTA: Start"));
-    });
+    ArduinoOTA.onStart([]()
+                       { Serial.println(F("Arduino OTA: Start")); });
 
-    ArduinoOTA.onEnd([]() {
-        Serial.println(F("Arduino OTA: End (Running reboot)"));
-    });
+    ArduinoOTA.onEnd([]()
+                     { Serial.println(F("Arduino OTA: End (Running reboot)")); });
 
-    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-        Serial.printf("Arduino OTA Progress: %u%%\r", (progress / (total / 100)));
-    });
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
+                          { Serial.printf("Arduino OTA Progress: %u%%\r", (progress / (total / 100))); });
 
-    ArduinoOTA.onError([](ota_error_t error) {
-        Serial.printf("Arduino OTA Error[%u]: ", error);
-        if (error == OTA_AUTH_ERROR)
-            Serial.println(F("Arduino OTA: Auth Failed"));
-        else if (error == OTA_BEGIN_ERROR)
-            Serial.println(F("Arduino OTA: Begin Failed"));
-        else if (error == OTA_CONNECT_ERROR)
-            Serial.println(F("Arduino OTA: Connect Failed"));
-        else if (error == OTA_RECEIVE_ERROR)
-            Serial.println(F("Arduino OTA: Receive Failed"));
-        else if (error == OTA_END_ERROR)
-            Serial.println(F("Arduino OTA: End Failed"));
-    });
+    ArduinoOTA.onError([](ota_error_t error)
+                       {
+                           Serial.printf("Arduino OTA Error[%u]: ", error);
+                           if (error == OTA_AUTH_ERROR)
+                               Serial.println(F("Arduino OTA: Auth Failed"));
+                           else if (error == OTA_BEGIN_ERROR)
+                               Serial.println(F("Arduino OTA: Begin Failed"));
+                           else if (error == OTA_CONNECT_ERROR)
+                               Serial.println(F("Arduino OTA: Connect Failed"));
+                           else if (error == OTA_RECEIVE_ERROR)
+                               Serial.println(F("Arduino OTA: Receive Failed"));
+                           else if (error == OTA_END_ERROR)
+                               Serial.println(F("Arduino OTA: End Failed"));
+                       });
 
     ArduinoOTA.begin();
     Serial.println(F("Arduino OTA finished"));
@@ -643,11 +642,14 @@ void setup()
     pinMode(LED_BUILTIN, OUTPUT);
 
     // * Setup Double reset detection
-    if (drd.detectDoubleReset()) {
+    if (drd.detectDoubleReset())
+    {
         Serial.println("Double Reset Detected");
         Serial.println("RESET WIFI Initiated");
         resetWifi();
-    } else {
+    }
+    else
+    {
         Serial.println("No Double Reset Detected");
     }
 
@@ -746,6 +748,12 @@ void setup()
 
 void loop()
 {
+    //every 7days --> restart board.
+    const unsigned long ONE_WEEK = 7ul * 24ul * 60ul * 60ul * 1000ul;
+    if (millis() < ONE_WEEK)
+        ESP.restart();
+
+
     ArduinoOTA.handle();
     long now = millis();
 
@@ -778,7 +786,6 @@ void loop()
     // //debug
     // Serial.println("End Loop");
     // Serial.println("--------");
-
 
     // Call the double reset detector loop method every so often,
     // so that it can recognise when the timeout expires.
