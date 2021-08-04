@@ -644,13 +644,13 @@ void setup()
     // * Setup Double reset detection
     if (drd.detectDoubleReset())
     {
-        Serial.println("Double Reset Detected");
-        Serial.println("RESET WIFI Initiated");
+        Serial.println("DRD: Double Reset Detected");
+        Serial.println("DRD: RESET WIFI Initiated");
         resetWifi();
     }
     else
     {
-        Serial.println("No Double Reset Detected");
+        Serial.println("DRD: No Double Reset Detected");
     }
 
     // * Start ticker with 0.5 because we start in AP mode and try to connect
@@ -748,11 +748,17 @@ void setup()
 
 void loop()
 {
-    //every 7days --> restart board.
-    const unsigned long ONE_WEEK = 7ul * 24ul * 60ul * 60ul * 1000ul;
-    if (millis() < ONE_WEEK)
+    //every 2days --> restart board.
+    const unsigned long RESTART_INTERVAL = 2ul * 24ul * 60ul * 60ul * 1000ul;
+    if (millis() > RESTART_INTERVAL)
+    {
+        Serial.println("++++++++++++++++++++++++++++++++++++++++");
+        Serial.print("trying to restart after 2 days or ms: ");
+        Serial.print(RESTART_INTERVAL);
+        Serial.println("");
+        Serial.println("++++++++++++++++++++++++++++++++++++++++");
         ESP.restart();
-
+    }
 
     ArduinoOTA.handle();
     long now = millis();

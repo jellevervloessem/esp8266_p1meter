@@ -3,24 +3,30 @@
 // **********************************
 
 //Reset wifi settings:
-// *Number of seconds after reset during which a 
+// *Number of seconds after reset during which a
 // *subseqent reset will be considered a double reset.
 #define DRD_TIMEOUT 10
 
 // *RTC Memory Address for the DoubleResetDetector to use
+#ifdef ARDUINO_ESP8266_WEMOS_D1MINI // WeMos mini and D1 R2
 #define DRD_ADDRESS 1
+#elif ARDUINO_ESP8266_NODEMCU // Wio Link and NodeMCU 1.0 (also 0.9), use for ESP12
+#define DRD_ADDRESS 0 // FLASH BUTTON
+#else 
+#define DRD_ADDRESS 1
+#endif
 
 // Update treshold in milliseconds, messages will only be sent on this interval
 //#define UPDATE_INTERVAL 60000  // 1 minute
-#define UPDATE_INTERVAL 30000       // 30s
+#define UPDATE_INTERVAL 30000 // 30s
 //#define UPDATE_INTERVAL 300000 // 5 minutes
 
-// * Baud rate for both hardware and software 
+// * Baud rate for both hardware and software
 #define BAUD_RATE 115200
 //#define BAUD_RATE 9600
 
 // The used serial pins, note that this can only be UART0, as other serial port doesn't support inversion
-// By default the UART0 serial will be used. These settings displayed here just as a reference. 
+// By default the UART0 serial will be used. These settings displayed here just as a reference.
 // #define SERIAL_RX RX
 // #define SERIAL_TX TX
 
@@ -49,7 +55,7 @@ long LAST_UPDATE_SENT = 0;
 
 // * To be filled with EEPROM data
 char MQTT_HOST[64] = "";
-char MQTT_PORT[6]  = "";
+char MQTT_PORT[6] = "";
 char MQTT_USER[32] = "";
 char MQTT_PASS[32] = "";
 
