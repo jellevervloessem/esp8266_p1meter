@@ -1,6 +1,7 @@
 # esp8266_p1meter
 
 Software for the ESP2866 that sends P1 smart meter data to an mqtt broker (with OTA firmware updates)
+Telegrams can be decoded via: 
 
 # Upgrading
 
