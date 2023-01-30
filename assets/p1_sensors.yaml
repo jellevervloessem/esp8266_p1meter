@@ -115,3 +115,19 @@
 - platform: mqtt
   name: P1 Short Power Peaks
   state_topic: "sensors/power/p1meter/short_power_peaks"
+
+- name: P1 Actual Average 15m Peak
+  unit_of_measurement: 'W'
+  device_class: power
+  state_class: measurement
+  state_topic: "sensors/power/p1meter/actual_average_15m_peak"
+  
+- name: P1 Thismonth Average 15m Peak
+  unit_of_measurement: 'W'
+  device_class: power
+  state_class: measurement
+  state_topic: "sensors/power/p1meter/thismonth_max_15m_peak"
+  
+- name: P1 Last13months Average 15m Peak
+  unit_of_measurement: 'W'
+  state_topic: "sensors/power/p1meter/last13months_average_15m_peak"

@@ -161,6 +161,12 @@ void send_data_to_broker()
     send_metric("long_power_outages", LONG_POWER_OUTAGES);
     send_metric("short_power_drops", SHORT_POWER_DROPS);
     send_metric("short_power_peaks", SHORT_POWER_PEAKS);
+
+    
+    send_metric("actual_average_15m_peak", mActualAverage15mPeak);
+    send_metric("thismonth_max_15m_peak", mMax15mPeakThisMonth);
+    send_metric("last13months_average_15m_peak", mAverage15mPeakLast13months);
+    
 }
 
 // **********************************
@@ -451,6 +457,29 @@ bool decode_telegram(int len)
     {
         SHORT_POWER_PEAKS = getValue(telegram, len, '(', ')');
     }
+
+    #pragma region UPDATE 1.7.1 PEAK TARRIFF
+
+    // 1-0:1.4.0(02.351*kW)
+    // 1-0:1.4.0 = quart_hourly_current_average_peak_consumption kW - Current rolling avg of the last 15 minutes
+    if (strncmp(telegram, "1-0:1.4.0", strlen("1-0:1.4.0")) == 0)
+        mActualAverage15mPeak = getValue(telegram, len, '(', '*');
+
+    // 1-0:1.6.0(200509134558S)(02.589*kW)
+    // 1-0:1.6.0 = quart_hourly_max_peak_this_month kW
+    if (strncmp(telegram, "1-0:1.6.0", strlen("1-0:1.6.0")) == 0)
+        mMax15mPeakThisMonth = getValue(telegram, len, '(', '*'); //probably the incorrect startchar...
+
+/* TODO To hard to process at the moment
+    // 0-0:98.1.0(3)(1-0:1.6.0)(1-0:1.6.0)(200501000000S)(200423192538S)(03.695*kW)(200401000000S)(200305122139S)(05.980*kW)(200301000000S)(200210035421W)(04.318*kW)
+    // 0-0:98.1.0 = quart_hourly_peak_consumption_last_13months
+    if (strncmp(telegram, "0-0:98.1.0", strlen("0-0:98.1.0")) == 0)
+        mAverage15mPeakLast13months = getValue(telegram, len, '(', ')');
+        // NOW PROceesing the "3" of the above example Is this value correcttly processed? since the telegram is quit long!!!
+
+*/
+
+#pragma endregion
 
     return validCRCFound;
 }

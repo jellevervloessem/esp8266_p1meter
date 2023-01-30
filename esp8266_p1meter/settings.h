@@ -90,5 +90,9 @@ long LONG_POWER_OUTAGES;
 long SHORT_POWER_DROPS;
 long SHORT_POWER_PEAKS;
 
+long mActualAverage15mPeak = 0;
+long mMax15mPeakThisMonth = 0;
+long mAverage15mPeakLast13months = 0;
+
 // * Set during CRC checking
 unsigned int currentCRC = 0;
