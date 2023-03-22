@@ -468,13 +468,27 @@ bool decode_telegram(int len)
     // 1-0:1.6.0(200509134558S)(02.589*kW)
     // 1-0:1.6.0 = quart_hourly_max_peak_this_month kW
     if (strncmp(telegram, "1-0:1.6.0", strlen("1-0:1.6.0")) == 0)
-        mMax15mPeakThisMonth = getValue(telegram, len, '(', '*'); //probably the incorrect startchar...
+        mMax15mPeakThisMonth = getValue(telegram, len, '(', '*'); 
 
 
     // 0-0:98.1.0(3)(1-0:1.6.0)(1-0:1.6.0)(200501000000S)(200423192538S)(03.695*kW)(200401000000S)(200305122139S)(05.980*kW)(200301000000S)(200210035421W)(04.318*kW)
     // 0-0:98.1.0 = quart_hourly_peak_consumption_last_13months
+    /***
+     * Line format:
+        'ID (Count) (ID) (ID) (TST) (TST) (Mv1*U1)'
+        1  2  3  4  5  6  7
+        1) OBIS Reduced ID-code
+        2) Amount of values in the response
+        3) ID of the source
+        4) ^^
+        5) Time Stamp (TST) of the month
+        6) Time Stamp (TST) when the max demand occured
+        6) Measurement value 1 (most recent entry of buffer attribute without unit)
+        7) Unit of measurement values (Unit of capture objects attribute)
+    */
     if (strncmp(telegram, "0-0:98.1.0", strlen("0-0:98.1.0")) == 0)
         mAverage15mPeakLast13months = getValue(telegram, len, '(', '*');
+        //TODO re process all the values and not only the last value.
 
 
 
