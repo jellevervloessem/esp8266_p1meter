@@ -17,6 +17,12 @@ Software for the ESP2866 that sends P1 smart meter data to an mqtt broker (with 
 When upgrading this sketch from the older version that uses software serial, make sure you re-check the pins and the wiring.
 The used pinout has changed since the switch to hardware serial (starting at version `0.0.2`)
 
+# Prerequisites
+
+- GCC 14 or newer
+
+> April 2023: Ubuntu doesn't yet support a stable version of gcc 14, making building on an Ubuntu system problematic
+
 # Getting started
 
 This setup requires:
@@ -28,7 +34,7 @@ Compiling up using Arduino IDE:
 - Ensure you have selected the right board
 - Using the Tools->Manage Libraries... install `PubSubClient` and `WifiManager`
 - In the file `Settings.h` change `OTA_PASSWORD` to a safe secret value
-- Flash the software
+- Flash the software (using esptool.py the firmware should be flashed to address 0x0000)
 
 Compiling up using PlatformIO:
 - Ensure the correct board type is selected in project configuration
@@ -139,6 +145,14 @@ sensors/power/p1meter/short_power_peaks 0
 
 
 Use this [example](/assets/p1_sensors.yaml) for home assistant's `sensor.yaml`
+
+```
+homeassistant:
+  packages: !include_dir_named packages
+```
+Add the code block above to ```configuration.yaml```, create a ```packages``` directory and put the sensors yaml file in there
+then in 'settings' , 'dashboards', 'Energy' add ```P1 Consumption High Tariff``` and ```P1 Consumption Low Tariff``` to  Electricity grid.  
+Add ```P1 Gas Usage``` to  Gas Consumption.
 
 The automatons are yours to create.
 And always remember that sending alerts in case of a power outtage only make sense when you own a UPS battery :)
